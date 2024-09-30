@@ -27,6 +27,19 @@ export class EmailService {
    }
 
 
+   SendEmailMasiveByCategory(email: Email, file: File, CategoryId: number): Observable<any>{
+    const formData = new FormData()
+    formData.append('title', email.title || '')
+    formData.append('message', email.message || '')
+    formData.append('image', file, file.name)
+    console.log(formData);
+    console.log(CategoryId);
+    
+    
+    return this.http.post(`${this.myAppUrl}${this.myApiUrl}/sendMasiveByCategory/${CategoryId}`, formData)
+   }
+
+
   // SendEmailMasive(email: Email): Observable<string>{
   //   return this.http.post<string>(`${this.myAppUrl}${this.myApiUrl}/sendMasive`, email)
   //  }

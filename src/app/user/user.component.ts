@@ -8,11 +8,12 @@ import { ToastrService } from 'ngx-toastr';
 import { ErrorService } from '../services/error.service';
 import { Email } from '../interfaces/email';
 import { HttpErrorResponse } from '@angular/common/http';
+import { PaginationComponent } from '../shared/pagination/pagination.component';
 
 @Component({
   selector: 'app-user',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, PaginationComponent],
   templateUrl: './user.component.html',
   styleUrl: './user.component.css'
 })
@@ -32,6 +33,12 @@ export class UserComponent implements OnInit {
   currentModalId: number | null = null;
   currentModalType: 'Create' | 'CreateUserFile' | 'Read' | 'Delete' | null = null;
 
+  //VARIABLE PARA LA PAGINACION
+    totalItems: number = 0;
+    itemsRegisterPage: number = 10;
+    currentPage: number = 1 ;
+
+
   constructor(
     private _userService: UserService,
     private fb: FormBuilder,
@@ -49,32 +56,24 @@ export class UserComponent implements OnInit {
     this.ListUserAll();
   }
 
-  ListUserAll() {
-    this._userService.ReadAll().subscribe({
+  ListUserAll(page: number = 1) {
+
+    this.currentPage = page;
+
+    this._userService.ReadAll(page, this.itemsRegisterPage).subscribe({
       next: (data: User[]) => {
-        this.listUser = data;
+        this.totalItems = data.length
+        this.listUser = data.slice((page-1) * this.itemsRegisterPage, page * this.itemsRegisterPage);
         console.log(data);
       }
     });
   }
 
-  onPhotoSelected(event: any): void {
-    if (event.target.files && event.target.files[0]) {
-      this.file = <File>event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = e => this.imageSelected = reader.result;
-      reader.readAsDataURL(this.file);
-    }
+   
+  onPageChanged(page: number): void{
+    this.ListUserAll(page)
   }
 
-  resetImage(): void {
-    this.imageSelected = null;
-    this.file = null;
-    const input = document.getElementById('dropzone-file') as HTMLInputElement;
-    if (input) {
-      input.value = '';
-    }
-  }
 
   SendEmailMasive() {
     if (this.form.invalid) {
@@ -106,6 +105,60 @@ export class UserComponent implements OnInit {
       complete: () => console.info('complete')
     });
   }
+ 
+  createCargarFile(): void {
+    
+    if (!this.fileExcel) {
+      this.toastr.error('Por favor, selecciona un archivo', 'Error');
+      return;
+    }
+
+    this._userService.createUserFile(this.fileExcel).subscribe({
+      next: () => {
+        this.toastr.success('Archivo procesado correctamente', 'Éxito');
+        this.fileExcel = null; // Cambiar a fileExcel
+        this.fileSelected = false;
+        this.ListUserAll();
+        this.closeModal()
+
+      },
+      error: (error) => {
+        this.toastr.error('Error al cargar el archivo', 'Error');
+        console.error(error);
+      }
+    });
+  }
+
+
+
+  onPhotoSelected(event: any): void {
+    if (event.target.files && event.target.files[0]) {
+      this.file = <File>event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = e => this.imageSelected = reader.result;
+      reader.readAsDataURL(this.file);
+    }
+  }
+
+  onFileSelected(event: any): void {
+    if (event.target.files && event.target.files[0]) {
+      this.fileExcel = <File>event.target.files[0];
+      console.log('Archivo seleccionado:', this.fileExcel.name); // Log para verificar el archivo
+      this.fileSelected = true;
+    }
+  }
+
+
+
+
+  resetImage(): void {
+    this.imageSelected = null;
+    this.file = null;
+    const input = document.getElementById('dropzone-file') as HTMLInputElement;
+    if (input) {
+      input.value = '';
+    }
+  }
 
   openModal(modalId: number, modalType: 'Create' | 'CreateUserFile' | 'Read' | 'Delete') {
     this.currentModalId = modalId,
@@ -121,33 +174,7 @@ export class UserComponent implements OnInit {
       this.currentModalType = null;
   }
 
-  onFileSelected(event: any): void {
-    if (event.target.files && event.target.files[0]) {
-      this.fileExcel = <File>event.target.files[0];
-      console.log('Archivo seleccionado:', this.fileExcel.name); // Log para verificar el archivo
-      this.fileSelected = true;
-    }
-  }
 
-
-  createCargarFile() {
-        if (!this.fileExcel) {
-      this.toastr.error('Por favor, selecciona un archivo', 'Error');
-      return;
-    }
-
-    this._userService.createUserFile(this.fileExcel).subscribe({
-      next: () => {
-        this.toastr.success('Archivo procesado correctamente', 'Éxito');
-        this.fileExcel = null; // Cambiar a fileExcel
-        this.fileSelected = false;
-      },
-      error: (error) => {
-        this.toastr.error('Error al cargar el archivo', 'Error');
-        console.error(error);
-      }
-    });
-  }
 
 
 }
