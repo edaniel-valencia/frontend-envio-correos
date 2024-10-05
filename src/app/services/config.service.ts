@@ -25,4 +25,12 @@ export class ConfigService {
     return this.http.post(`${this.myAppUrl}${this.myApiUrl}/create`, config)
    }
 
+   PatchServerEmail(config: Config, configId: number): Observable<any>{
+    return this.http.patch(`${this.myAppUrl}${this.myApiUrl}/update/${configId}`, config)
+   }
+
+   DeleteServerEmail(configId: number): Observable<any>{
+    return this.http.delete(`${this.myAppUrl}${this.myApiUrl}/delete/${configId}`)
+   }
+
 }

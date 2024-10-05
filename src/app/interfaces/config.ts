@@ -1,6 +1,6 @@
 export interface Config{
 
-    id?: number,
+    Cid?: number,
     Chost?: string,
     Cport?: string,
     Csecure?: string,

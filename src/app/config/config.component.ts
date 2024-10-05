@@ -19,24 +19,25 @@ export class ConfigComponent implements OnInit {
 
 
 
-  listConfig: Config [] = []
+  listConfig: Config[] = []
 
-
+  modalId?: number = 0
   currentModalId: number | null = null;
   currentModalType: 'Create' | 'Update' | 'Read' | 'Delete' | null = null;
 
 
-    //VARIABLE PARA LA PAGINACION
-    totalItems: number = 0;
-    itemsRegisterPage: number = 10;
-    currentPage: number = 1 ;
+  //VARIABLE PARA LA PAGINACION
+  totalItems: number = 0;
+  itemsRegisterPage: number = 10;
+  currentPage: number = 1;
 
-    
-    imageSelected: string | ArrayBuffer | null = null;
-    file: File | null = null;
-    form: FormGroup;
+
+  imageSelected: string | ArrayBuffer | null = null;
+  file: File | null = null;
+  form: FormGroup;
+  formUpdate: FormGroup;
   constructor(
-    private route: ActivatedRoute,  
+    private route: ActivatedRoute,
     private toastr: ToastrService,
     private _errorService: ErrorService,
     private _configService: ConfigService,
@@ -50,10 +51,19 @@ export class ConfigComponent implements OnInit {
       auth: ['', Validators.required],
       pass: ['', Validators.required],
     });
-   }
+    this.formUpdate = this.fb.group({
+      host: ['', Validators.required],
 
-  
-   ngOnInit(): void {
+      port: ['',  [Validators.required, Validators.pattern('^[0-9]{3}$')]],
+      secure: ['',Validators.required], 
+      auth: ['', [Validators.required, Validators.email]],
+      pass: ['', Validators.required]
+    });
+    
+  }
+
+
+  ngOnInit(): void {
     this.listConfigAll();
   }
 
@@ -65,10 +75,10 @@ export class ConfigComponent implements OnInit {
   }
 
 
-  
-  CreateServidor(){
 
-    if(this.form.invalid){
+  CreateServidor() {
+
+    if (this.form.invalid) {
       this.toastr.error('No haz completado todo los datos', 'Alerta Campos Vacios')
       return
     }
@@ -82,24 +92,85 @@ export class ConfigComponent implements OnInit {
     }
 
     console.log(config);
-    
+
 
     this._configService.PostServerEmail(config).subscribe({
       next: (v) => {
         this.toastr.success("Creacion del servidor exitosamente", "Creación Exitosa")
-        this.form.reset()
         this.listConfigAll()
+        this.form.reset()
         this.closeModal()
       },
-      error: (e: HttpErrorResponse) =>{
+      error: (e: HttpErrorResponse) => {
         this._errorService.messageError(e)
       },
-      complete: () => console.info('complete') 
+      complete: () => console.info('complete')
     })
 
   }
-  
-  
+
+  UpdateServidor(configId: number) {
+
+    if (this.formUpdate.invalid) {
+      console.log(this.formUpdate.errors); // Para ver qué errores hay en el formulario
+      console.log(this.formUpdate); // Para verificar el estado completo del formulario
+      this.toastr.error('No haz completado todo los datos', 'Alerta Campos Vacios');
+      return;
+    }
+
+    const config: Config = {
+      Chost: this.formUpdate.value.host,
+      Cport: this.formUpdate.value.port,
+      Csecure: this.formUpdate.value.secure,
+      Cauth: this.formUpdate.value.auth,
+      Cpass: this.formUpdate.value.pass
+    }
+
+    console.log(config);
+
+
+    this._configService.PatchServerEmail(config, configId).subscribe({
+      next: () => {
+        this.toastr.success("Creacion del servidor exitosamente", "Creación Exitosa")
+        this.listConfigAll()
+        this.formUpdate.reset()
+        this.closeModal()
+      },
+      error: (e: HttpErrorResponse) => {
+        this._errorService.messageError(e)
+      },
+      complete: () => console.info('complete')
+    })
+
+  }
+
+  DeleteServidor(configId: number) {
+
+    if (this.formUpdate.invalid) {
+      this.toastr.error('No haz completado todo los datos', 'Alerta Campos Vacios')
+      return
+    }
+
+   
+
+    console.log(configId);
+
+
+    this._configService.DeleteServerEmail(configId).subscribe({
+      next: () => {
+        this.toastr.success("Sa ha eliminado los datso del servidor de correo", "Eliminación Exitosa")
+        this.listConfigAll()
+        this.closeModal()
+      },
+      error: (e: HttpErrorResponse) => {
+        this._errorService.messageError(e)
+      },
+      complete: () => console.info('complete')
+    })
+
+  }
+
+
   resetImage(): void {
     this.imageSelected = null;
     this.file = null;
@@ -109,9 +180,23 @@ export class ConfigComponent implements OnInit {
     }
   }
 
-  openModal(modalId: number, modalType: 'Create' | 'Update' | 'Read' | 'Delete') {
+  openModal(data: Config | null | undefined, modalId: number, modalType: 'Create' | 'Update' | 'Read' | 'Delete') {
     this.currentModalId = modalId,
-      this.currentModalType = modalType;
+    this.currentModalType = modalType;
+
+    if(data){
+      this.formUpdate.patchValue({
+        host: data.Chost,
+        port: data.Cport,
+        secure: data.Csecure,
+        auth: data.Cauth,
+        pass: data.Cpass,
+      });
+      this.modalId = data.Cid
+    }else{
+      this.formUpdate.reset()
+      this.modalId = 0
+    }
   }
 
   isModalOpen(modalType: 'Create' | 'Update' | 'Read' | 'Delete') {
@@ -124,7 +209,7 @@ export class ConfigComponent implements OnInit {
   }
 
 
-  
+
   onPhotoSelected(event: any): void {
     if (event.target.files && event.target.files[0]) {
       this.file = <File>event.target.files[0];
